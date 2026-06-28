@@ -1,0 +1,22 @@
+# Environment
+.env
+
+# macOS
+.DS_Store
+
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+dist/
+*.egg-info/
+.venv/
+
+# Runtime data (large JSONL dumps, pull state)
+data/
+
+# Logs
+*.log

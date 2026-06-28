@@ -1,0 +1,12 @@
+# TMDB credits → Person + directedBy/hasActor links
+# Separate mapping file for the credits endpoint.
+
+namespace: "https://playground.ontorag.dev/movie/person/"
+class_uri: "https://playground.ontorag.dev/movie/Person"
+id_field: "id"
+label_field: "name"
+
+fields:
+  birth_date:   "https://playground.ontorag.dev/movie/birthDate"
+
+# director and cast links are assembled by the connector, not the generic mapper

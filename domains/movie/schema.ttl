@@ -1,0 +1,143 @@
+@prefix owl:    <http://www.w3.org/2002/07/owl#> .
+@prefix rdf:    <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix rdfs:   <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix xsd:    <http://www.w3.org/2001/XMLSchema#> .
+@prefix dcterms:<http://purl.org/dc/terms/> .
+@prefix mv:     <https://playground.ontorag.dev/movie/> .
+
+<https://playground.ontorag.dev/movie/>
+    a owl:Ontology ;
+    rdfs:label "Movie Domain Ontology" ;
+    rdfs:comment "한국영화(KMDB) 도메인 온톨로지. Casting 노드로 배역명을 관계 속성으로 모델링." ;
+    owl:versionInfo "1.1.0" .
+
+# ── Classes ──────────────────────────────────────────────────────────────────
+
+mv:Movie a owl:Class ;
+    rdfs:label "Movie"@en, "영화"@ko ;
+    rdfs:comment "A theatrical film or production." .
+
+mv:Person a owl:Class ;
+    rdfs:label "Person"@en, "인물"@ko ;
+    rdfs:comment "A person involved in filmmaking (director, actor, crew)." .
+
+mv:Genre a owl:Class ;
+    rdfs:label "Genre"@en, "장르"@ko ;
+    rdfs:comment "A film genre classification (e.g., Drama, Action, Comedy)." .
+
+mv:ProductionCompany a owl:Class ;
+    rdfs:label "Production Company"@en, "제작사"@ko ;
+    rdfs:comment "A company that produces or finances films." .
+
+# ── Casting node (배역명 = 관계의 속성) ─────────────────────────────────────
+# 배우-영화 단순 엣지 대신 중간 Casting 노드를 두어 배역명·주연여부를 담는다.
+# Movie -[hasCasting]-> Casting -[performedBy]-> Person
+# KMDB 크레딧(배우+배역명 쌍)을 그대로 반영하는 패턴.
+
+mv:Casting a owl:Class ;
+    rdfs:label "Casting"@en, "캐스팅"@ko ;
+    rdfs:comment "배우와 영화를 연결하는 중간 노드. 배역명·주연여부를 속성으로 가진다." .
+
+# ── Object properties ────────────────────────────────────────────────────────
+
+mv:directedBy a owl:ObjectProperty ;
+    rdfs:domain mv:Movie ;
+    rdfs:range  mv:Person ;
+    rdfs:label  "directed by"@en, "감독"@ko .
+
+mv:hasCasting a owl:ObjectProperty ;
+    rdfs:domain mv:Movie ;
+    rdfs:range  mv:Casting ;
+    rdfs:label  "has casting"@en, "캐스팅 포함"@ko .
+
+mv:performedBy a owl:ObjectProperty ;
+    rdfs:domain mv:Casting ;
+    rdfs:range  mv:Person ;
+    rdfs:label  "performed by"@en, "배우"@ko .
+
+mv:starredIn a owl:ObjectProperty ;
+    rdfs:domain mv:Person ;
+    rdfs:range  mv:Casting ;
+    rdfs:label  "starred in"@en, "출연"@ko ;
+    owl:inverseOf mv:performedBy .
+
+mv:castingOf a owl:ObjectProperty ;
+    rdfs:domain mv:Casting ;
+    rdfs:range  mv:Movie ;
+    rdfs:label  "casting of"@en, "영화"@ko ;
+    owl:inverseOf mv:hasCasting .
+
+mv:hasGenre a owl:ObjectProperty ;
+    rdfs:domain mv:Movie ;
+    rdfs:range  mv:Genre ;
+    rdfs:label  "has genre"@en, "장르"@ko .
+
+mv:producedBy a owl:ObjectProperty ;
+    rdfs:domain mv:Movie ;
+    rdfs:range  mv:ProductionCompany ;
+    rdfs:label  "produced by"@en, "제작사"@ko .
+
+# ── Datatype properties (Movie) ──────────────────────────────────────────────
+
+mv:releaseYear a owl:DatatypeProperty ;
+    rdfs:domain mv:Movie ;
+    rdfs:range  xsd:integer ;
+    rdfs:label  "release year"@en, "개봉연도"@ko .
+
+mv:plot a owl:DatatypeProperty ;
+    rdfs:domain mv:Movie ;
+    rdfs:range  xsd:string ;
+    rdfs:label  "plot"@en, "시놉시스"@ko ;
+    rdfs:comment "시놉시스 텍스트. Stage 7 ACL 2차 가공의 입력이 된다." .
+
+mv:rating a owl:DatatypeProperty ;
+    rdfs:domain mv:Movie ;
+    rdfs:range  xsd:decimal ;
+    rdfs:label  "rating"@en, "평점"@ko .
+
+mv:kmdbId a owl:DatatypeProperty ;
+    rdfs:domain mv:Movie ;
+    rdfs:range  xsd:string ;
+    rdfs:label  "KMDB DOCID"@en ;
+    rdfs:comment "한국영화데이터베이스 고유 식별자 (예: K|00001)." .
+
+mv:kmdbSeq a owl:DatatypeProperty ;
+    rdfs:domain mv:Movie ;
+    rdfs:range  xsd:string ;
+    rdfs:label  "KMDB movieSeq"@en .
+
+# ── Datatype properties (Casting) ────────────────────────────────────────────
+
+mv:roleName a owl:DatatypeProperty ;
+    rdfs:domain mv:Casting ;
+    rdfs:range  xsd:string ;
+    rdfs:label  "role name"@en, "배역명"@ko ;
+    rdfs:comment "KMDB actor.actorRole 필드에서 직접 매핑." .
+
+mv:isLead a owl:DatatypeProperty ;
+    rdfs:domain mv:Casting ;
+    rdfs:range  xsd:boolean ;
+    rdfs:label  "is lead"@en, "주연여부"@ko .
+
+mv:castOrder a owl:DatatypeProperty ;
+    rdfs:domain mv:Casting ;
+    rdfs:range  xsd:integer ;
+    rdfs:label  "cast order"@en, "출연순서"@ko .
+
+# ── Datatype properties (Person) ─────────────────────────────────────────────
+
+mv:nameKo a owl:DatatypeProperty ;
+    rdfs:domain mv:Person ;
+    rdfs:range  xsd:string ;
+    rdfs:label  "Korean name"@en, "한국어 이름"@ko .
+
+mv:nameEn a owl:DatatypeProperty ;
+    rdfs:domain mv:Person ;
+    rdfs:range  xsd:string ;
+    rdfs:label  "English name"@en .
+
+mv:kmdbPersonId a owl:DatatypeProperty ;
+    rdfs:domain mv:Person ;
+    rdfs:range  xsd:string ;
+    rdfs:label  "KMDB person ID"@en ;
+    rdfs:comment "KMDB가 인물 고유 ID를 제공하면 동명이인 처리에 사용. 없으면 이름 기반 ACL 결선." .

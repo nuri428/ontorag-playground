@@ -1,0 +1,48 @@
+# KMDB 영화 데이터 → movie 온톨로지 매핑
+# 이 파일이 KMDB 필드명을 아는 유일한 곳. engine/ingest/mapper.py는 이 파일을 모른다.
+#
+# KMDB Open API v2 (wisenut) 확인된 필드명:
+#   endpoint     → /openapi-data2/wisenut/search_api/search_json2.jsp
+#   id           → movieSeq (고유 키; DOCID는 "A06971" 형태, movieSeq가 실질 PK)
+#   title        → title (!HS / !HE 마크업 제거 → connector.py에서 처리)
+#   release_year → prodYear (string "2023" → int 변환)
+#   genre        → genre (쉼표 구분 문자열 → list 변환)
+#   plot         → plots.plot[0].plotText → connector.py에서 평탄화
+#   directors    → directors.director[] → {directorNm, directorId} ✓ 확인
+#   actors       → actors.actor[]      → {actorNm, actorId}        ✓ 확인 (actorRole 미제공)
+
+namespace: "https://playground.ontorag.dev/movie/movie/"
+class_uri: "https://playground.ontorag.dev/movie/Movie"
+id_field: "id"          # connector가 movieSeq를 "id"로 정규화
+label_field: "title"
+
+fields:
+  title:        "http://purl.org/dc/terms/title"
+  release_year: "https://playground.ontorag.dev/movie/releaseYear"
+  plot:         "https://playground.ontorag.dev/movie/plot"
+  id:           "https://playground.ontorag.dev/movie/kmdbId"
+  movie_seq:    "https://playground.ontorag.dev/movie/kmdbSeq"
+
+reference_fields:
+  directors:
+    predicate:  "https://playground.ontorag.dev/movie/directedBy"
+    namespace:  "https://playground.ontorag.dev/movie/person/"
+    id_key:     "directorId"     # KMDB directorId (고유 ID — 이름 슬러그보다 안전)
+    label_key:  "directorNm"
+
+# Casting 중간 노드: actorId로 동명이인 없이 Person URI 결정
+# actorRole은 wisenut API 미제공 → Casting label은 actorNm 사용
+intermediate_entities:
+  - source_field: "actors"
+    namespace:    "https://playground.ontorag.dev/movie/casting/"
+    class_uri:    "https://playground.ontorag.dev/movie/Casting"
+    id_strategy:  "concat"
+    id_fields:    ["id", "actorId"]
+    link_from_parent: "https://playground.ontorag.dev/movie/hasCasting"
+    link_to_ref:      "https://playground.ontorag.dev/movie/performedBy"
+    ref_namespace:    "https://playground.ontorag.dev/movie/person/"
+    ref_id_field:     "actorId"
+    ref_label_field:  "actorNm"
+    ref_class_uri:    "https://playground.ontorag.dev/movie/Person"
+    item_label_field: "actorNm"
+    item_fields: {}

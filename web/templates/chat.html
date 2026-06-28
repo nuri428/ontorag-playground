@@ -1,0 +1,244 @@
+{% extends "base.html" %}
+{% block title %}Chat — ontorag-playground{% endblock %}
+
+{% block content %}
+<div class="flex gap-3 p-3" style="height:calc(100vh - 48px);">
+
+  <!-- ── Chat panel ──────────────────────────────────────────── -->
+  <div class="flex flex-col w-1/2 bg-gray-900/60 rounded-xl border border-gray-800/60 overflow-hidden">
+
+    <div class="px-4 py-2.5 border-b border-gray-800/60 flex items-center justify-between shrink-0">
+      <span class="text-xs font-semibold text-gray-400 uppercase tracking-wider">Knowledge Graph Chat</span>
+      <div class="flex items-center gap-2">
+        <span id="query-type-badge" class="hidden text-xs px-2 py-0.5 rounded-full bg-indigo-900/50 text-indigo-300"></span>
+        <button onclick="clearChat()" class="text-xs text-gray-600 hover:text-gray-400 transition-colors">Clear</button>
+      </div>
+    </div>
+
+    <div id="messages" class="flex-1 overflow-y-auto p-4 space-y-3">
+      <div class="text-center py-12 text-gray-600 text-sm">
+        <div class="text-2xl mb-3">⬡</div>
+        온톨로지에 대해 자연어로 질문하세요<br>
+        <span class="text-xs text-gray-700 mt-1 block">예: "봉준호가 감독한 영화는?" · "Parasite에 출연한 배우들" · "최근 추가된 영화는?"</span>
+      </div>
+    </div>
+
+    <div class="px-3 py-3 border-t border-gray-800/60 shrink-0">
+      <form id="chat-form" onsubmit="sendMessage(event)" class="flex gap-2">
+        <input id="q-input" type="text" autocomplete="off"
+          placeholder="질문을 입력하세요..."
+          class="flex-1 bg-gray-800/80 border border-gray-700/60 rounded-lg px-3 py-2 text-sm
+                 text-gray-200 placeholder-gray-600 focus:outline-none focus:border-indigo-500 transition-colors">
+        <button type="submit"
+          class="bg-indigo-600 hover:bg-indigo-500 disabled:opacity-40 text-white text-sm px-4 py-2
+                 rounded-lg transition-colors font-medium shrink-0" id="send-btn">
+          Send
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <!-- ── Graph panel ─────────────────────────────────────────── -->
+  <div class="flex flex-col w-1/2 bg-gray-900/60 rounded-xl border border-gray-800/60 overflow-hidden">
+
+    <div class="px-4 py-2.5 border-b border-gray-800/60 flex items-center justify-between shrink-0">
+      <span class="text-xs font-semibold text-gray-400 uppercase tracking-wider">Live Knowledge Graph</span>
+      <div class="flex items-center gap-2">
+        <button onclick="loadSchema()"
+          class="text-xs bg-gray-800 hover:bg-gray-700 text-gray-300 px-2 py-1 rounded transition-colors">
+          Schema
+        </button>
+        <button onclick="cy.fit()" class="text-xs text-gray-600 hover:text-gray-400 transition-colors">Fit</button>
+        <button onclick="resetGraph()" class="text-xs text-gray-600 hover:text-gray-400 transition-colors">Reset</button>
+      </div>
+    </div>
+
+    <div id="cy" class="flex-1"></div>
+
+    <div class="px-4 py-1.5 border-t border-gray-800/60 shrink-0 flex items-center gap-4 text-xs text-gray-700">
+      <span><span class="inline-block w-2 h-2 rounded-full bg-indigo-500 mr-1"></span>Answer nodes</span>
+      <span><span class="inline-block w-2 h-2 rounded-full bg-blue-900 mr-1"></span>Schema class</span>
+      <span><span class="inline-block w-2 h-2 rounded-full bg-gray-700 mr-1"></span>Related</span>
+      <span id="node-count" class="ml-auto"></span>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+// ── Cytoscape setup ───────────────────────────────────────────────────────────
+const cy = cytoscape({
+  container: document.getElementById('cy'),
+  style: [
+    { selector: 'node', style: {
+        'background-color': '#374151', 'label': 'data(label)',
+        'color': '#9ca3af', 'font-size': '10px',
+        'text-valign': 'bottom', 'text-halign': 'center',
+        'text-max-width': '80px', 'text-wrap': 'ellipsis',
+        'border-width': 1, 'border-color': '#4b5563',
+        'width': 34, 'height': 34,
+    }},
+    { selector: 'node.highlighted', style: {
+        'background-color': '#6366f1', 'border-color': '#818cf8',
+        'color': '#e0e7ff', 'width': 46, 'height': 46, 'font-size': '11px',
+    }},
+    { selector: 'node.schema-class', style: {
+        'background-color': '#1e3a5f', 'border-color': '#2563eb',
+        'shape': 'roundrectangle', 'width': 90, 'height': 36,
+    }},
+    { selector: 'node.root', style: {
+        'background-color': '#4f46e5', 'border-color': '#818cf8',
+        'width': 50, 'height': 50,
+    }},
+    { selector: 'edge', style: {
+        'width': 1, 'line-color': '#374151',
+        'target-arrow-color': '#374151', 'target-arrow-shape': 'triangle',
+        'curve-style': 'bezier', 'label': 'data(label)',
+        'font-size': '8px', 'color': '#6b7280', 'text-rotation': 'autorotate',
+        'text-background-color': '#0d0d0f', 'text-background-opacity': 0.8,
+        'text-background-padding': '2px',
+    }},
+    { selector: 'edge.highlighted', style: {
+        'line-color': '#6366f1', 'target-arrow-color': '#6366f1', 'width': 2,
+    }},
+  ],
+  wheelSensitivity: 0.3,
+  minZoom: 0.2, maxZoom: 4,
+});
+
+cy.on('tap', 'node', e => {
+  const uri = e.target.id();
+  exploreNode(uri);
+});
+
+function updateNodeCount() {
+  document.getElementById('node-count').textContent =
+    `${cy.nodes().length} nodes · ${cy.edges().length} edges`;
+}
+
+function resetGraph() { cy.elements().remove(); updateNodeCount(); }
+
+async function loadSchema() {
+  const r = await fetch('/api/graph/schema');
+  const d = await r.json();
+  cy.elements().remove();
+  cy.add([...d.elements.nodes, ...d.elements.edges]);
+  cy.layout({ name: 'cose', animate: true, padding: 30 }).run();
+  updateNodeCount();
+}
+
+async function exploreNode(uri) {
+  const r = await fetch(`/api/graph/traverse?uri=${encodeURIComponent(uri)}&depth=2`);
+  const d = await r.json();
+  const newEls = [...d.elements.nodes, ...d.elements.edges].filter(
+    el => !cy.getElementById(el.data.id).length
+  );
+  cy.add(newEls);
+  cy.layout({ name: 'cose', animate: true, fit: false }).run();
+  updateNodeCount();
+}
+
+function highlightNodes(uris) {
+  cy.nodes().removeClass('highlighted');
+  cy.edges().removeClass('highlighted');
+  uris.forEach(uri => {
+    const n = cy.$(`#${CSS.escape(uri)}`);
+    n.addClass('highlighted');
+    n.connectedEdges().addClass('highlighted');
+  });
+}
+
+// ── Chat logic ────────────────────────────────────────────────────────────────
+let sessionId = null;
+
+function clearChat() {
+  document.getElementById('messages').innerHTML = `
+    <div class="text-center py-12 text-gray-600 text-sm">
+      <div class="text-2xl mb-3">⬡</div>온톨로지에 대해 자연어로 질문하세요
+    </div>`;
+  sessionId = null;
+  resetGraph();
+}
+
+function addBubble(role, html = '') {
+  const wrap = document.createElement('div');
+  wrap.className = 'flex ' + (role === 'user' ? 'justify-end' : 'justify-start');
+  const bubble = document.createElement('div');
+  bubble.className = 'max-w-sm lg:max-w-md px-3 py-2 text-sm leading-relaxed ' +
+    (role === 'user' ? 'chat-user text-gray-200' : 'chat-ai text-gray-300');
+  bubble.innerHTML = html;
+  wrap.appendChild(bubble);
+  document.getElementById('messages').appendChild(wrap);
+  document.getElementById('messages').scrollTop = 99999;
+  return bubble;
+}
+
+async function sendMessage(e) {
+  e.preventDefault();
+  const input = document.getElementById('q-input');
+  const question = input.value.trim();
+  if (!question) return;
+  input.value = '';
+  input.disabled = true;
+  document.getElementById('send-btn').disabled = true;
+
+  addBubble('user', question);
+  const aiBubble = addBubble('ai', '<span class="animate-pulse text-gray-600">···</span>');
+
+  try {
+    const resp = await fetch('/ui/chat/stream', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ question, session_id: sessionId }),
+    });
+
+    const reader = resp.body.getReader();
+    const dec = new TextDecoder();
+    let text = '';
+    let citedUris = [];
+    aiBubble.innerHTML = '';
+
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      for (const line of dec.decode(value).split('\n')) {
+        if (!line.startsWith('data: ')) continue;
+        let payload;
+        try { payload = JSON.parse(line.slice(6)); } catch { continue; }
+        if (payload.type === 'chunk') {
+          text += payload.text;
+          aiBubble.textContent = text;
+          document.getElementById('messages').scrollTop = 99999;
+        } else if (payload.type === 'citation' || payload.type === 'provenance') {
+          citedUris.push(payload.uri || payload.subject);
+        } else if (payload.type === 'session') {
+          sessionId = payload.session_id;
+        } else if (payload.type === 'error') {
+          aiBubble.innerHTML = `<span class="text-red-400">⚠ ${payload.message}</span>`;
+        } else if (payload.type === 'done') {
+          if (citedUris.length) {
+            // Try to add cited nodes to graph + highlight
+            for (const uri of citedUris) {
+              if (!cy.$(`#${CSS.escape(uri)}`).length) {
+                await exploreNode(uri).catch(() => {});
+              }
+            }
+            highlightNodes(citedUris);
+          }
+        }
+      }
+    }
+  } catch (err) {
+    aiBubble.innerHTML = `<span class="text-red-400">⚠ ${err.message}</span>`;
+  } finally {
+    input.disabled = false;
+    document.getElementById('send-btn').disabled = false;
+    input.focus();
+  }
+}
+
+// ── Init ──────────────────────────────────────────────────────────────────────
+loadSchema();
+</script>
+{% endblock %}

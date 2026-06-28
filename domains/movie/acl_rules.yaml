@@ -1,0 +1,29 @@
+# ACL 결선 규칙 — 도메인 중립 문법으로 기술.
+# engine/acl/linker.py는 이 파일의 규칙만 보고 동작. "감독 이름 같으면" 같은 if-else 없음.
+#
+# KMDB는 감독·배우 고유 ID를 제공하지 않는다.
+# → rdfs:label(이름) 기준 결선. 동명이인은 confidence threshold로 경고.
+
+min_confidence: 0.85
+
+rules:
+  - name: "link_persons_by_label"
+    description: "Person 엔티티를 동일 정규화 이름으로 결선 (감독·배우 공통)"
+    match_property: "http://www.w3.org/2000/01/rdf-schema#label"
+    link_predicate:  "http://www.w3.org/2002/07/owl#sameAs"
+    confidence: 0.88
+    normalize: true
+
+  - name: "link_genres_by_label"
+    description: "Genre 엔티티 동명 결선"
+    match_property: "http://www.w3.org/2000/01/rdf-schema#label"
+    link_predicate:  "http://www.w3.org/2002/07/owl#sameAs"
+    confidence: 0.95
+    normalize: true
+
+  - name: "link_companies_by_label"
+    description: "ProductionCompany 동명 결선"
+    match_property: "http://www.w3.org/2000/01/rdf-schema#label"
+    link_predicate:  "http://www.w3.org/2002/07/owl#sameAs"
+    confidence: 0.90
+    normalize: true

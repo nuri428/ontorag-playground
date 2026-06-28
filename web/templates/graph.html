@@ -1,0 +1,96 @@
+{% extends "base.html" %}
+{% block title %}Graph Explorer — ontorag-playground{% endblock %}
+
+{% block content %}
+<div class="flex flex-col p-3 gap-3" style="height:calc(100vh - 48px);">
+  <div class="flex gap-2 items-center shrink-0">
+    <input id="uri-input" type="text" placeholder="Entity URI to explore..."
+      class="flex-1 bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-gray-200
+             placeholder-gray-600 focus:outline-none focus:border-indigo-500 font-mono text-xs">
+    <select id="depth-select"
+      class="bg-gray-800 border border-gray-700 text-gray-300 text-xs rounded-lg px-2 py-2">
+      <option value="1">depth 1</option>
+      <option value="2" selected>depth 2</option>
+      <option value="3">depth 3</option>
+    </select>
+    <button onclick="explore()"
+      class="bg-indigo-600 hover:bg-indigo-500 text-white text-sm px-4 py-2 rounded-lg transition-colors">
+      Explore
+    </button>
+    <button onclick="loadSchema()"
+      class="bg-gray-700 hover:bg-gray-600 text-gray-300 text-sm px-3 py-2 rounded-lg transition-colors">
+      Schema
+    </button>
+    <button onclick="cy.fit()" class="text-xs text-gray-500 hover:text-gray-300 px-2">Fit</button>
+    <button onclick="cy.elements().remove()" class="text-xs text-gray-600 hover:text-gray-400 px-2">Clear</button>
+  </div>
+  <div class="flex-1 bg-gray-900/60 rounded-xl border border-gray-800/60 overflow-hidden">
+    <div id="cy" class="w-full h-full"></div>
+  </div>
+  <div id="status" class="text-xs text-gray-700 shrink-0"></div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+const cy = cytoscape({
+  container: document.getElementById('cy'),
+  style: [
+    { selector: 'node', style: {
+        'background-color': '#374151', 'label': 'data(label)',
+        'color': '#9ca3af', 'font-size': '10px',
+        'text-valign': 'bottom', 'text-max-width': '100px', 'text-wrap': 'ellipsis',
+        'border-width': 1, 'border-color': '#4b5563', 'width': 36, 'height': 36,
+    }},
+    { selector: 'node.root', style: {
+        'background-color': '#4f46e5', 'border-color': '#818cf8',
+        'width': 52, 'height': 52, 'font-size': '11px', 'color': '#e0e7ff',
+    }},
+    { selector: 'node.schema-class', style: {
+        'background-color': '#1e3a5f', 'border-color': '#2563eb',
+        'shape': 'roundrectangle', 'width': 100, 'height': 36,
+    }},
+    { selector: 'edge', style: {
+        'width': 1, 'line-color': '#374151', 'target-arrow-color': '#374151',
+        'target-arrow-shape': 'triangle', 'curve-style': 'bezier',
+        'label': 'data(label)', 'font-size': '8px', 'color': '#6b7280',
+        'text-rotation': 'autorotate',
+        'text-background-color': '#0d0d0f', 'text-background-opacity': 0.8,
+    }},
+  ],
+  wheelSensitivity: 0.3,
+});
+
+cy.on('tap', 'node', e => {
+  document.getElementById('uri-input').value = e.target.id();
+});
+
+async function explore() {
+  const uri = document.getElementById('uri-input').value.trim();
+  const depth = document.getElementById('depth-select').value;
+  if (!uri) return;
+  const r = await fetch(`/api/graph/traverse?uri=${encodeURIComponent(uri)}&depth=${depth}`);
+  const d = await r.json();
+  const newEls = [...d.elements.nodes, ...d.elements.edges].filter(
+    el => !cy.getElementById(el.data.id).length
+  );
+  newEls.filter(el => el.data.id === uri).forEach(el => el.classes = 'root');
+  cy.add(newEls);
+  cy.layout({ name: 'cose', animate: true, padding: 30 }).run();
+  document.getElementById('status').textContent =
+    `${cy.nodes().length} nodes · ${cy.edges().length} edges`;
+}
+
+async function loadSchema() {
+  const r = await fetch('/api/graph/schema');
+  const d = await r.json();
+  cy.elements().remove();
+  d.elements.nodes.forEach(n => n.classes = 'schema-class');
+  cy.add([...d.elements.nodes, ...d.elements.edges]);
+  cy.layout({ name: 'cose', animate: true, padding: 30 }).run();
+  document.getElementById('status').textContent = `Schema: ${cy.nodes().length} classes`;
+}
+
+loadSchema();
+</script>
+{% endblock %}

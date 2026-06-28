@@ -1,0 +1,102 @@
+@prefix owl:    <http://www.w3.org/2002/07/owl#> .
+@prefix rdf:    <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix rdfs:   <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix xsd:    <http://www.w3.org/2001/XMLSchema#> .
+@prefix mv:     <https://playground.ontorag.dev/movie/> .
+@prefix era:    <https://playground.ontorag.dev/era/> .
+
+# ── Stage 7 전용: 시대배경 온톨로지 ─────────────────────────────────────────
+# LLM이 시놉시스에서 자유롭게 시대를 추출하되,
+# 이 사전정의 노드로 강제 매핑시켜 표현 다양성을 흡수한다.
+# ("1940년대", "일제치하", "해방 직전" → 모두 era:JapaneseColonialPeriod)
+
+<https://playground.ontorag.dev/era/>
+    a owl:Ontology ;
+    rdfs:label "Korean Historical Era Ontology" ;
+    rdfs:comment "Stage 7 ACL 2차 가공에서 LLM이 시놉시스 → 시대 매핑 시 사용하는 권위 노드 목록." ;
+    owl:versionInfo "1.0.0" .
+
+era:Era a owl:Class ;
+    rdfs:label "Historical Era"@en, "시대"@ko ;
+    rdfs:comment "한국사 시대 분류. LLM 출력을 이 노드로 강제 정규화한다." .
+
+# ── 시대 노드 인스턴스 (권위 노드) ──────────────────────────────────────────
+
+era:Joseon a era:Era ;
+    rdfs:label "조선시대"@ko, "Joseon Dynasty"@en ;
+    mv:eraStart "1392"^^xsd:integer ;
+    mv:eraEnd   "1897"^^xsd:integer ;
+    rdfs:comment "1392–1897. 조선왕조 시대." .
+
+era:KoreanEmpire a era:Era ;
+    rdfs:label "대한제국"@ko, "Korean Empire"@en ;
+    mv:eraStart "1897"^^xsd:integer ;
+    mv:eraEnd   "1910"^^xsd:integer .
+
+era:LateJoseonAndOpeningEra a era:Era ;
+    rdfs:label "구한말"@ko, "Late Joseon / Opening Era"@en ;
+    mv:eraStart "1876"^^xsd:integer ;
+    mv:eraEnd   "1910"^^xsd:integer ;
+    rdfs:comment "개항기 포함. 개화, 동학, 항일 소재 작품 다수." .
+
+era:JapaneseColonialPeriod a era:Era ;
+    rdfs:label "일제강점기"@ko, "Japanese Colonial Period"@en ;
+    mv:eraStart "1910"^^xsd:integer ;
+    mv:eraEnd   "1945"^^xsd:integer ;
+    rdfs:comment "1910–1945. '1940년대 경성', '일제 치하', '해방 직전' 등 표현을 이 노드로 수렴." .
+
+era:LiberationPeriod a era:Era ;
+    rdfs:label "해방기"@ko, "Liberation Period"@en ;
+    mv:eraStart "1945"^^xsd:integer ;
+    mv:eraEnd   "1950"^^xsd:integer .
+
+era:KoreanWar a era:Era ;
+    rdfs:label "한국전쟁"@ko, "Korean War"@en ;
+    mv:eraStart "1950"^^xsd:integer ;
+    mv:eraEnd   "1953"^^xsd:integer .
+
+era:Postwar1950s a era:Era ;
+    rdfs:label "전후 1950년대"@ko, "Postwar 1950s"@en ;
+    mv:eraStart "1953"^^xsd:integer ;
+    mv:eraEnd   "1960"^^xsd:integer .
+
+era:Military1960s70s a era:Era ;
+    rdfs:label "군사정권기 (1960-70년대)"@ko, "Military Regime Era"@en ;
+    mv:eraStart "1961"^^xsd:integer ;
+    mv:eraEnd   "1980"^^xsd:integer .
+
+era:Era1980s a era:Era ;
+    rdfs:label "1980년대"@ko, "1980s"@en ;
+    mv:eraStart "1980"^^xsd:integer ;
+    mv:eraEnd   "1990"^^xsd:integer .
+
+era:Contemporary a era:Era ;
+    rdfs:label "현대"@ko, "Contemporary"@en ;
+    mv:eraStart "1990"^^xsd:integer ;
+    rdfs:comment "1990년 이후 현대. 명확한 시대 표시 없는 현대극 기본값." .
+
+era:Futuristic a era:Era ;
+    rdfs:label "미래"@ko, "Futuristic"@en ;
+    rdfs:comment "SF, 디스토피아 등 미래를 배경으로 한 작품." .
+
+era:Timeless a era:Era ;
+    rdfs:label "시대불명"@ko, "Timeless / Unknown"@en ;
+    rdfs:comment "시대 배경이 불분명하거나 현실과 다른 세계관." .
+
+# ── 영화-시대 연결 프로퍼티 (Stage 7 inference 레이어용) ──────────────────
+
+mv:hasEraSetting a owl:ObjectProperty ;
+    rdfs:domain mv:Movie ;
+    rdfs:range  era:Era ;
+    rdfs:label  "has era setting"@en, "시대배경"@ko ;
+    rdfs:comment "Stage 7 ACL 2차 가공이 inference named graph에 기록하는 프로퍼티." .
+
+mv:eraStart a owl:DatatypeProperty ;
+    rdfs:domain era:Era ;
+    rdfs:range  xsd:integer ;
+    rdfs:label  "era start year"@en .
+
+mv:eraEnd a owl:DatatypeProperty ;
+    rdfs:domain era:Era ;
+    rdfs:range  xsd:integer ;
+    rdfs:label  "era end year"@en .

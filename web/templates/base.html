@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>{% block title %}ontorag-playground{% endblock %}</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://cdn.jsdelivr.net/npm/cytoscape@3.29.0/dist/cytoscape.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/cytoscape-fcose@2.2.0/cytoscape-fcose.js"></script>
+<style>
+  body { background:#0d0d0f; color:#e2e8f0; font-family:system-ui,sans-serif; }
+  .chat-user  { background:#1e293b; border-radius:12px 12px 2px 12px; }
+  .chat-ai    { background:#111827; border-radius:12px 12px 12px 2px; border:1px solid #1f2937; }
+  #cy         { width:100%; height:100%; }
+  ::-webkit-scrollbar { width:4px; }
+  ::-webkit-scrollbar-track { background:#111; }
+  ::-webkit-scrollbar-thumb { background:#374151; border-radius:2px; }
+</style>
+</head>
+<body class="min-h-screen">
+<nav class="border-b border-gray-800/60 px-5 py-2.5 flex items-center gap-5 backdrop-blur">
+  <span class="text-indigo-400 font-bold text-sm tracking-tight">⬡ ontorag-playground</span>
+  <a href="/ui/chat"  class="text-xs text-gray-400 hover:text-gray-100 transition-colors">Chat</a>
+  <a href="/ui/graph" class="text-xs text-gray-400 hover:text-gray-100 transition-colors">Graph</a>
+  <span class="ml-auto flex items-center gap-3">
+    <a href="/api/ingest/status" class="text-xs text-gray-600 hover:text-gray-400 transition-colors">Status</a>
+    <a href="/docs" class="text-xs text-gray-600 hover:text-gray-400 transition-colors">API</a>
+  </span>
+</nav>
+<main>{% block content %}{% endblock %}</main>
+{% block scripts %}{% endblock %}
+</body>
+</html>

@@ -1,0 +1,37 @@
+# Stage 7 ACL 2차 가공 규칙
+# engine/inference/extractor.py가 이 파일을 읽는다. 엔진에는 "시대" 개념 없음.
+#
+# 규칙 구조:
+#   name            - 규칙 식별자
+#   source_property - 입력 텍스트 predicate (엔티티의 이 속성을 읽어 LLM에 전달)
+#   candidate_class - graph store에서 이 클래스의 인스턴스를 선택지로 사용
+#   result_property - 분류 결과를 이 predicate로 기록
+#   output_graph    - 결과를 저장할 named graph (사실 레이어와 분리)
+#   min_confidence  - 이 값 미만은 기록 안 함
+#   prompt_context  - LLM 프롬프트 첫 문장
+#   task_description- "이 영화의 ___을 골라라" 형태로 사용
+#   fallback_label  - 적합한 선택지 없을 때 사용할 후보 label
+
+rules:
+  - name: "era_classification"
+    description: "시놉시스 → 시대배경 분류 (schema_era.ttl의 권위 노드로 정규화)"
+    source_property: "https://playground.ontorag.dev/movie/plot"
+    candidate_class:  "https://playground.ontorag.dev/era/Era"
+    result_property:  "https://playground.ontorag.dev/movie/hasEraSetting"
+    output_graph:     "urn:pg:inference"
+    min_confidence:   0.70
+    prompt_context:   "다음은 한국 영화의 시놉시스다."
+    task_description: "시대배경"
+    fallback_label:   "시대불명"
+    max_source_chars: 800
+
+  # 확장 예시 — 미래 도메인에서 추가 가능:
+  #
+  # - name: "mood_classification"
+  #   source_property: "https://playground.ontorag.dev/movie/plot"
+  #   candidate_class:  "https://playground.ontorag.dev/mood/Mood"
+  #   result_property:  "https://playground.ontorag.dev/movie/hasMood"
+  #   output_graph:     "urn:pg:inference"
+  #   min_confidence:   0.75
+  #   task_description: "전반적인 분위기"
+  #   fallback_label:   "기타"
