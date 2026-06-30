@@ -7,6 +7,16 @@
 
 See [SPEC.md](SPEC.md) for full spec and stage-by-stage backlog.
 
+## UI
+
+| Chat (`/ui/chat`) | Graph Explorer (`/ui/graph`) |
+|---|---|
+| ![Chat interface](docs/screenshots/chat.png) | ![Graph explorer](docs/screenshots/graph.png) |
+
+**Chat** — left panel: natural-language Q&A over the knowledge graph (SSE streaming). Right panel: live graph that highlights cited entities after each answer.
+
+**Graph Explorer** — freeform URI traversal with configurable depth; Schema button loads the full ontology class graph.
+
 ## Quick start
 
 ```bash

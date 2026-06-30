@@ -8,13 +8,22 @@ BASE="/Users/nuri/dev/git/ws/ontorag/ontorag-playground"
 cd "$BASE"
 
 LOG_DIR="data/logs"
-LOG="$LOG_DIR/collect_$(date +%Y%m%d_%H%M%S).log"
+mkdir -p "$LOG_DIR"
+
+# ── 당일 중복 실행 방지 ────────────────────────────────────────────────────────
+TODAY=$(date +%Y%m%d)
+DONE_FLAG="$LOG_DIR/.done_${TODAY}"
+if [ -f "$DONE_FLAG" ]; then
+    exit 0  # 오늘 이미 실행됨
+fi
+
+LOG="$LOG_DIR/collect_${TODAY}_$(date +%H%M%S).log"
 exec >> "$LOG" 2>&1
 
 echo "=== $(date '+%Y-%m-%d %H:%M:%S') 수집 시작 ==="
 
 CMD="uv run python domains/movie/connector.py"
-BUDGET=90
+BUDGET=70
 
 # ── 상태 판별 (Python one-liner) ─────────────────────────────────────────────
 done_count() { python3 -c "
@@ -40,7 +49,7 @@ if [ "$SUPP_DONE" -lt 270 ]; then
         --max-calls $BUDGET
     $CMD load --jsonl data/supporting_filmography.jsonl
     echo "[Phase 1] ✓ $(date '+%H:%M:%S') 완료"
-    exit 0
+    touch "$DONE_FLAG"; exit 0
 fi
 echo "[Phase 1] ✓ 이미 완료 (270/270)"
 
@@ -55,7 +64,7 @@ if [ "$YEAR_2019" -lt 2020 ]; then
         --max-calls $BUDGET
     $CMD load --jsonl data/movies_2000_2019.jsonl
     echo "[Phase 2] ✓ $(date '+%H:%M:%S') 완료"
-    exit 0
+    touch "$DONE_FLAG"; exit 0
 fi
 echo "[Phase 2] ✓ 이미 완료 (2000-2019)"
 
@@ -71,7 +80,7 @@ echo "$PHASE3_OUTPUT"
 if ! echo "$PHASE3_OUTPUT" | grep -q "수집 완료\|모든 주연"; then
     $CMD load --jsonl data/filmography_2000_2019.jsonl
     echo "[Phase 3] ✓ $(date '+%H:%M:%S') 로딩 완료"
-    exit 0
+    touch "$DONE_FLAG"; exit 0
 fi
 echo "[Phase 3] ✓ 이미 완료"
 
@@ -87,10 +96,11 @@ echo "$PHASE4_OUTPUT"
 if ! echo "$PHASE4_OUTPUT" | grep -q "수집 완료\|모든 조연"; then
     $CMD load --jsonl data/supporting_filmography_2000_2019.jsonl
     echo "[Phase 4] ✓ $(date '+%H:%M:%S') 로딩 완료"
-    exit 0
 fi
-echo "[Phase 4] ✓ 이미 완료"
 
 echo ""
 echo "✅ 모든 수집 단계 완료! ($(date '+%Y-%m-%d'))"
 echo "   2000-2025 전체 한국 극영화 + 주연/조연 필모그래피 수집 종료."
+
+# 완료 플래그 — 오늘은 더 이상 실행 안 함
+touch "$DONE_FLAG"

@@ -16,4 +16,4 @@ _TEMPLATES = Jinja2Templates(
 
 @router.get("/graph", response_class=HTMLResponse)
 async def graph_page(request: Request):
-    return _TEMPLATES.TemplateResponse("graph.html", {"request": request})
+    return _TEMPLATES.TemplateResponse(request, "graph.html")

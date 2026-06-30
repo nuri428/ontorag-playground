@@ -15,7 +15,6 @@ import re as _re
 from typing import Any
 
 from fastapi import APIRouter, HTTPException, Query
-
 from ontorag.stores.factory import create_store
 
 router = APIRouter(prefix="/api", tags=["graph"])
@@ -26,7 +25,7 @@ _URI_RE = _re.compile(r"^(https?://|urn:)[^\s<>\"{}|\\^\[\]]+$")
 
 def _validate_uri(uri: str) -> str:
     if not _URI_RE.match(uri):
-        raise HTTPException(status_code=400, detail=f"유효하지 않은 URI 형식")
+        raise HTTPException(status_code=400, detail="유효하지 않은 URI 형식")
     return uri
 
 

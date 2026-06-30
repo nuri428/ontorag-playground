@@ -16,11 +16,11 @@ from pathlib import Path
 from fastapi import APIRouter, HTTPException, Request
 from fastapi.responses import HTMLResponse, StreamingResponse
 from fastapi.templating import Jinja2Templates
-
-from ontorag.stores.factory import create_store
-from ontorag.llm.factory import get_llm_provider
-from engine.query.router import QueryType, route_question
 from ontorag.chat.agent import AgentLoop
+from ontorag.llm.factory import get_llm_provider
+from ontorag.stores.factory import create_store
+
+from engine.query.router import QueryType, route_question
 
 router = APIRouter(prefix="/ui", tags=["ui"])
 logger = logging.getLogger(__name__)
@@ -62,7 +62,7 @@ async def _get_or_create_loop(session_id: str | None) -> tuple[str, AgentLoop]:
 
 @router.get("/chat", response_class=HTMLResponse)
 async def chat_page(request: Request):
-    return _TEMPLATES.TemplateResponse("chat.html", {"request": request})
+    return _TEMPLATES.TemplateResponse(request, "chat.html")
 
 
 @router.post("/chat/stream")
@@ -95,7 +95,7 @@ async def chat_stream(request: Request):
                     break
                 yield f"data: {json.dumps(event)}\n\n"
             yield f"data: {json.dumps({'type': 'done'})}\n\n"
-        except Exception as exc:
+        except Exception:
             logger.exception("Chat stream error")
             yield f"data: {json.dumps({'type': 'error', 'message': '처리 중 오류가 발생했습니다'})}\n\n"
 
