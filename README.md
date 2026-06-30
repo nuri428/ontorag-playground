@@ -5,7 +5,7 @@
 > Movies are just the first reference dataset — swap the `domains/` folder to point it at anything.
 > **Status: personal playground / WIP. Not a product.**
 
-See [ontorag-playground.md](../ontorag-playground.md) for full spec and stage-by-stage backlog.
+See [SPEC.md](SPEC.md) for full spec and stage-by-stage backlog.
 
 ## Quick start
 
