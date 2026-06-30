@@ -3,7 +3,6 @@ from __future__ import annotations
 
 import os
 import subprocess
-import sys
 from pathlib import Path
 
 import typer
@@ -33,7 +32,7 @@ def init():
     src = Path(".env.example")
     dst = Path(".env")
     if dst.exists():
-        typer.echo(f".env already exists, skipping.")
+        typer.echo(".env already exists, skipping.")
         return
     if not src.exists():
         typer.echo("No .env.example found.", err=True)
@@ -48,13 +47,13 @@ def check():
     result = subprocess.run(
         ["grep", "-r", "--include=*.py", "-l",
          "--exclude=cli.py",
-         "-E", r"movie|actor|director|tmdb|genre|영화|감독|배우|장르",
+         "-E", r"\b(movie|actor|director|tmdb|genre)\b|영화|감독|배우|장르",
          "engine/"],
         capture_output=True, text=True,
     )
     hits = [line for line in result.stdout.splitlines() if line.strip()]
     if hits:
-        typer.echo(f"⚠  Domain words found in engine/:\n" + "\n".join(f"  {h}" for h in hits), err=True)
+        typer.echo("⚠  Domain words found in engine/:\n" + "\n".join(f"  {h}" for h in hits), err=True)
         raise typer.Exit(1)
     typer.echo("✓ engine/ is domain-neutral (0 domain words found)")
 

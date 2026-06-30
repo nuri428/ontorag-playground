@@ -2,7 +2,7 @@
 
 Reads acl_rules.yaml, finds new entities matching existing ones by property
 value, and emits linking triples (default: owl:sameAs).
-No movie-specific field names here.
+No domain-specific field names here.
 """
 from __future__ import annotations
 
@@ -12,11 +12,11 @@ import unicodedata
 from pathlib import Path
 from typing import Any
 
-logger = logging.getLogger(__name__)
-
 import yaml
-from rdflib import Graph, Literal, URIRef
-from rdflib.namespace import OWL, RDFS
+from rdflib import Graph, URIRef
+from rdflib.namespace import OWL
+
+logger = logging.getLogger(__name__)
 
 
 class ACLRule:

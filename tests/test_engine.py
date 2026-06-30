@@ -18,13 +18,14 @@ Stage 5 done criteria:
 Domain-neutrality:
   ✓ engine/ Python 로직에 도메인 고유명사 없음
 """
-import pytest
 from unittest.mock import AsyncMock, MagicMock
-from rdflib import Graph, Literal, URIRef
-from rdflib.namespace import RDF, RDFS, OWL
 
-from engine.ingest.mapper import DomainMapper, MappingConfig, INGESTED_AT
+import pytest
+from rdflib import Graph, Literal, URIRef
+from rdflib.namespace import OWL, RDF, RDFS
+
 from engine.acl.linker import EntityLinker
+from engine.ingest.mapper import INGESTED_AT, DomainMapper, MappingConfig
 from engine.query.router import QueryType, route_question
 
 MAPPING_PATH = "domains/movie/mapping.yaml"
@@ -74,7 +75,7 @@ def test_mapper_label():
     cfg = MappingConfig(MAPPING_PATH)
     g = DomainMapper(cfg).map_record(PARASITE)
     labels = list(g.objects(_movie_uri(), RDFS.label))
-    assert any("기생충" in str(l) for l in labels)
+    assert any("기생충" in str(lbl) for lbl in labels)
 
 
 def test_mapper_ingested_at():
@@ -214,8 +215,8 @@ async def test_build_existing_graph_populates_labels():
 
     버그 수정 회귀 테스트: 이전에는 RDFGraph()가 넘어가 링크가 0개였음.
     """
-    from engine.api.routes.ingest import _build_existing_graph
     from engine.acl.linker import EntityLinker
+    from engine.api.routes.ingest import _build_existing_graph
 
     linker = EntityLinker(RULES_PATH)
 
@@ -247,8 +248,8 @@ async def test_build_existing_graph_links_same_person():
 
     기존 "송강호"(urn:b) + 신규 "송강호"(urn:a) → owl:sameAs 링크 생성.
     """
-    from engine.api.routes.ingest import _build_existing_graph
     from engine.acl.linker import EntityLinker
+    from engine.api.routes.ingest import _build_existing_graph
 
     linker = EntityLinker(RULES_PATH)
 
@@ -271,8 +272,8 @@ async def test_build_existing_graph_links_same_person():
 
 async def test_build_existing_graph_store_error_skips_gracefully():
     """스토어 조회 실패 시 예외 없이 빈 그래프를 반환해야 한다."""
-    from engine.api.routes.ingest import _build_existing_graph
     from engine.acl.linker import EntityLinker
+    from engine.api.routes.ingest import _build_existing_graph
 
     linker = EntityLinker(RULES_PATH)
 
@@ -299,5 +300,5 @@ def test_domain_neutrality():
          "engine/"],
         capture_output=True, text=True,
     )
-    hits = [l for l in result.stdout.splitlines() if l.strip()]
-    assert hits == [], f"Domain words in engine/ logic:\n" + "\n".join(hits)
+    hits = [line for line in result.stdout.splitlines() if line.strip()]
+    assert hits == [], "Domain words in engine/ logic:\n" + "\n".join(hits)

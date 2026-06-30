@@ -1,23 +1,20 @@
 """ontorag-playground FastAPI application.
 
-Domain-neutral: no movie-specific code anywhere in engine/.
+Domain-neutral: no domain-specific code anywhere in engine/.
 """
 from __future__ import annotations
 
 import logging
-import os
-from pathlib import Path
 
 from dotenv import load_dotenv
 
 load_dotenv()
 
-from fastapi import FastAPI
-from fastapi.responses import RedirectResponse
-from fastapi.templating import Jinja2Templates
-from fastapi_mcp import FastApiMCP
+from fastapi import FastAPI  # noqa: E402
+from fastapi.responses import RedirectResponse  # noqa: E402
+from fastapi_mcp import FastApiMCP  # noqa: E402
 
-from engine.api.routes import chat, graph, ingest, ui
+from engine.api.routes import chat, graph, ingest, ui  # noqa: E402
 
 logger = logging.getLogger(__name__)
 

@@ -9,19 +9,20 @@
   ✓ engine/inference/ 에 도메인 단어 없음 (도메인 중립성)
 """
 import json
-import pytest
 from typing import Any
-from unittest.mock import AsyncMock, MagicMock, patch
-from rdflib import Graph, URIRef
+from unittest.mock import AsyncMock, MagicMock
+
+import pytest
+from rdflib import URIRef
 from rdflib.namespace import PROV, RDF
 
 from engine.inference.extractor import (
-    InferenceExtractor,
-    InferenceRule,
-    load_rules,
     _CONFIDENCE,
     _EVIDENCE_TEXT,
     _RULE_NAME,
+    InferenceExtractor,
+    InferenceRule,
+    load_rules,
 )
 
 RULES_PATH = "domains/movie/inference_rules.yaml"
@@ -192,5 +193,5 @@ def test_inference_module_is_domain_neutral():
          "engine/inference/"],
         capture_output=True, text=True,
     )
-    hits = [l for l in result.stdout.splitlines() if l.strip()]
+    hits = [line for line in result.stdout.splitlines() if line.strip()]
     assert hits == [], "Domain words in engine/inference/:\n" + "\n".join(hits)

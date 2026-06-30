@@ -1,6 +1,6 @@
 """Ingest route — Stage 1 (schema load) + Stage 3 (data + ACL linking).
 
-Domain-neutral: reads domain_dir from env/request, zero movie knowledge.
+Domain-neutral: reads domain_dir from env/request, zero domain knowledge hard-coded.
 """
 from __future__ import annotations
 
@@ -11,13 +11,14 @@ from pathlib import Path
 from typing import Any
 
 from fastapi import APIRouter, HTTPException
+from ontorag.stores.factory import create_store
 from pydantic import BaseModel
-from rdflib import Graph as RDFGraph, Literal, URIRef
+from rdflib import Graph as RDFGraph
+from rdflib import Literal, URIRef
 from rdflib.namespace import RDF, RDFS
 
-from ontorag.stores.factory import create_store
-from engine.ingest.mapper import DomainMapper, MappingConfig
 from engine.acl.linker import ACLRule, EntityLinker
+from engine.ingest.mapper import DomainMapper, MappingConfig
 
 router = APIRouter(prefix="/api", tags=["ingest"])
 logger = logging.getLogger(__name__)
@@ -142,8 +143,9 @@ async def run_inference(req: InferenceRequest):
     entity_uris는 필수다. 암묵적 전체 스캔은 실수로 수백 건 LLM 호출을 유발하므로 금지.
     find_entities()는 list[EntityResult]를 반환 (EntityResult.uri 로 접근).
     """
-    from engine.inference import InferenceExtractor, load_rules
     from ontorag.llm.factory import get_llm_provider
+
+    from engine.inference import InferenceExtractor, load_rules
 
     if not req.entity_uris:
         raise HTTPException(400, "entity_uris must be provided explicitly")

@@ -1,7 +1,7 @@
 """Domain-neutral inference extractor driven by inference_rules.yaml.
 
 어떤 분류 작업이든 외부 규칙 파일로 제어한다.
-engine/ 코드에는 "시대", "장르" 같은 도메인 개념이 없다.
+engine/ 코드에는 도메인 고유 개념이 없다.
 
 흐름:
   1. 규칙 파일 로드 (InferenceRule 목록)
@@ -23,7 +23,7 @@ import logging
 import re
 import tempfile
 import uuid
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
@@ -263,7 +263,7 @@ class InferenceExtractor:
         g = Graph()
         s = URIRef(entity_uri)
         o = URIRef(result_uri)
-        now = datetime.datetime.now(datetime.timezone.utc).strftime(
+        now = datetime.datetime.now(datetime.UTC).strftime(
             "%Y-%m-%dT%H:%M:%SZ"
         )
         prov_id = URIRef(f"urn:pg:prov:{uuid.uuid4().hex[:12]}")

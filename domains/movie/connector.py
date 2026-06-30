@@ -360,7 +360,7 @@ def pull_filmography(
     # ── 배우 목록 추출 ─────────────────────────────────────────────────────
     from collections import defaultdict
     with open(source_jsonl, encoding="utf-8") as _f:
-        movies = [json.loads(l) for l in _f if l.strip()]
+        movies = [json.loads(line) for line in _f if line.strip()]
     actor_info: dict[str, dict] = defaultdict(lambda: {"count": 0, "pos_sum": 0, "nm": ""})
     for m in movies:
         for pos, a in enumerate(m.get("actors", [])):
@@ -396,10 +396,10 @@ def pull_filmography(
 
     # 기존 영화 ID 중복 방지
     with open(source_jsonl, encoding="utf-8") as _f:
-        existing_ids = {json.loads(l).get("id") for l in _f if l.strip()}
+        existing_ids = {json.loads(line).get("id") for line in _f if line.strip()}
     if out.exists():
         with open(out, encoding="utf-8") as _f:
-            existing_ids |= {json.loads(l).get("id") for l in _f if l.strip()}
+            existing_ids |= {json.loads(line).get("id") for line in _f if line.strip()}
 
     out.parent.mkdir(parents=True, exist_ok=True)
     calls = 0
@@ -458,7 +458,7 @@ def load(
 ):
     """저장된 JSONL을 playground의 ingest 엔드포인트로 전송."""
     with open(jsonl, encoding="utf-8") as _f:
-        records = [json.loads(l) for l in _f if l.strip()]
+        records = [json.loads(line) for line in _f if line.strip()]
     r = httpx.post(f"{endpoint}/api/ingest/data", json={"records": records}, timeout=120)
     r.raise_for_status()
     typer.echo(r.json())
