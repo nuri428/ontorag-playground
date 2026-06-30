@@ -21,6 +21,7 @@ import datetime
 import json
 import logging
 import re
+import tempfile
 import uuid
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -175,11 +176,22 @@ class InferenceExtractor:
         response: str,
         rule: InferenceRule,
     ) -> tuple[str, str, float]:
-        match = re.search(r"\{.*?\}", response, re.DOTALL)
-        if not match:
+        start = response.find("{")
+        if start == -1:
+            return "", "", 0.0
+        depth, end = 0, -1
+        for i, ch in enumerate(response[start:], start):
+            if ch == "{":
+                depth += 1
+            elif ch == "}":
+                depth -= 1
+                if depth == 0:
+                    end = i
+                    break
+        if end == -1:
             return "", "", 0.0
         try:
-            payload = json.loads(match.group())
+            payload = json.loads(response[start:end + 1])
         except json.JSONDecodeError:
             return "", "", 0.0
         label = payload.get(rule.task_description, "")
@@ -260,7 +272,7 @@ class InferenceExtractor:
         g.add((prov_id, RDF.type, PROV.Activity))
         g.add((prov_id, PROV.wasAssociatedWith, s))
         g.add((prov_id, _GENERATED_AT, Literal(now, datatype=XSD.dateTime)))
-        g.add((prov_id, _CONFIDENCE, Literal(str(confidence))))
+        g.add((prov_id, _CONFIDENCE, Literal(confidence, datatype=XSD.decimal)))
         g.add((prov_id, _EVIDENCE_TEXT, Literal(evidence)))
         g.add((prov_id, _RULE_NAME, Literal(rule.name)))
         g.add((o, PROV.wasGeneratedBy, prov_id))
@@ -272,13 +284,13 @@ class InferenceExtractor:
         rule_name: str,
     ) -> int:
         """여러 엔티티 일괄 처리 → inference named graph(slug)에 저장."""
-        import pathlib, tempfile
         rule = self._rules.get(rule_name)
         if rule is None:
             raise ValueError(f"Unknown rule: {rule_name!r}")
 
         written = 0
         for uri in entity_uris:
+            tmp_path = None
             try:
                 g = await self.extract_for_entity(uri, rule_name)
                 if len(g) == 0:
@@ -292,8 +304,10 @@ class InferenceExtractor:
                 await self._store.load_rdf(
                     tmp_path, mode="data", ontology=rule.ontology_slug
                 )
-                pathlib.Path(tmp_path).unlink(missing_ok=True)
                 written += 1
             except Exception as exc:
                 logger.warning("Failed for %s: %s", uri, exc)
+            finally:
+                if tmp_path:
+                    Path(tmp_path).unlink(missing_ok=True)
         return written

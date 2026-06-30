@@ -25,7 +25,7 @@ _MULTI_HOP = [
     r"통해|through|via|연결|linked|related\s+to|path",
     r"(that|who|which)\s+(appeared|participated|performed|contains|has|was\s+in)",
     r"같이|함께",
-    r"(나온|출연한|참여한).*(다른|또\s*다른)",
+    r"(나온|참여한).*(다른|또\s*다른)",
     r"(appeared|participated)\s+in.*other",
 ]
 
@@ -33,9 +33,9 @@ _MULTI_HOP = [
 def route_question(question: str) -> QueryType:
     q = question.lower()
     for pat in _INCREMENTAL:
-        if re.search(pat, q, re.IGNORECASE):
+        if re.search(pat, q):
             return QueryType.INCREMENTAL
     for pat in _MULTI_HOP:
-        if re.search(pat, q, re.IGNORECASE):
+        if re.search(pat, q):
             return QueryType.MULTI_HOP
     return QueryType.STATE

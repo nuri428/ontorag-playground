@@ -6,10 +6,13 @@ No movie-specific field names here.
 """
 from __future__ import annotations
 
+import logging
 import re
 import unicodedata
 from pathlib import Path
 from typing import Any
+
+logger = logging.getLogger(__name__)
 
 import yaml
 from rdflib import Graph, Literal, URIRef
@@ -35,7 +38,7 @@ class EntityLinker:
 
     def __init__(self, rules_path: str | Path):
         with open(rules_path) as f:
-            raw = yaml.safe_load(f)
+            raw = yaml.safe_load(f) or {}
         self.rules: list[ACLRule] = [ACLRule(r) for r in raw.get("rules", [])]
         self.min_confidence: float = raw.get("min_confidence", 0.8)
 
@@ -58,6 +61,8 @@ class EntityLinker:
             existing_idx: dict[str, URIRef] = {}
             for s, _, o in existing_graph.triples((None, pred, None)):
                 key = _normalize(str(o)) if rule.normalize else str(o)
+                if key in existing_idx:
+                    logger.debug("ACL: duplicate key %r — overwriting %s with %s", key, existing_idx[key], s)
                 existing_idx[key] = s  # type: ignore[assignment]
 
             for s, _, o in new_graph.triples((None, pred, None)):

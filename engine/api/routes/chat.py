@@ -13,7 +13,7 @@ import logging
 from collections import OrderedDict
 from pathlib import Path
 
-from fastapi import APIRouter, Request
+from fastapi import APIRouter, HTTPException, Request
 from fastapi.responses import HTMLResponse, StreamingResponse
 from fastapi.templating import Jinja2Templates
 
@@ -67,7 +67,10 @@ async def chat_page(request: Request):
 
 @router.post("/chat/stream")
 async def chat_stream(request: Request):
-    body = await request.json()
+    try:
+        body = await request.json()
+    except Exception:
+        raise HTTPException(status_code=400, detail="요청 본문이 유효한 JSON이 아닙니다")
     question: str = body.get("question", "").strip()
     session_id: str | None = body.get("session_id")
 
@@ -87,11 +90,14 @@ async def chat_stream(request: Request):
         yield f"data: {json.dumps({'type': 'session', 'session_id': sid})}\n\n"
         try:
             async for event in loop.run(effective_q):
+                if await request.is_disconnected():
+                    logger.info("Client disconnected, stopping stream sid=%s", sid)
+                    break
                 yield f"data: {json.dumps(event)}\n\n"
             yield f"data: {json.dumps({'type': 'done'})}\n\n"
         except Exception as exc:
             logger.exception("Chat stream error")
-            yield f"data: {json.dumps({'type': 'error', 'message': str(exc)})}\n\n"
+            yield f"data: {json.dumps({'type': 'error', 'message': '처리 중 오류가 발생했습니다'})}\n\n"
 
     return StreamingResponse(
         generate(),

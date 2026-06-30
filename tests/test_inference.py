@@ -10,6 +10,7 @@
 """
 import json
 import pytest
+from typing import Any
 from unittest.mock import AsyncMock, MagicMock, patch
 from rdflib import Graph, URIRef
 from rdflib.namespace import PROV, RDF
@@ -132,7 +133,6 @@ def _make_entity_result(uri: str, text: str) -> Any:
     return m
 
 
-@pytest.mark.asyncio
 async def test_low_confidence_returns_empty_graph():
     ex = _make_extractor(candidates={"A": "urn:A", "기타": "urn:etc"})
 
@@ -151,7 +151,6 @@ async def test_low_confidence_returns_empty_graph():
 
 # ── inference 그래프 구조 ────────────────────────────────────────────────────
 
-@pytest.mark.asyncio
 async def test_inference_graph_has_prov():
     ex = _make_extractor(candidates={"A": "urn:cat:A", "기타": "urn:cat:etc"})
 

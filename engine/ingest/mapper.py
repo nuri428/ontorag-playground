@@ -3,11 +3,12 @@
 No domain-specific field names in this file — all knowledge lives in mapping.yaml.
 
 v1.1: 중간 노드(intermediate_entities) 지원 추가.
-      배역명처럼 관계 자체에 속성이 필요할 때 Casting 같은 중간 노드를 생성한다.
+      관계 속성명처럼 관계 자체에 속성이 필요할 때 IntermNode 같은 중간 노드를 생성한다.
 """
 from __future__ import annotations
 
 import datetime
+import logging
 import re
 import uuid
 from pathlib import Path
@@ -16,6 +17,8 @@ from typing import Any
 import yaml
 from rdflib import Graph, Literal, URIRef
 from rdflib.namespace import RDF, RDFS, XSD
+
+logger = logging.getLogger(__name__)
 
 INGESTED_AT = URIRef("urn:pg:ingestedAt")
 
@@ -31,7 +34,7 @@ def _now_iso() -> str:
 class IntermediateEntityConfig:
     """중간 노드 설정 — 하나의 소스 배열 항목마다 별도 노드를 생성한다.
 
-    예: KMDB actor 배열 → Casting 노드 (배역명, 주연여부 보유)
+    예: 소스 배열 → IntermNode 노드 (관계 속성명, 관계 속성 보유)
     """
 
     def __init__(self, raw: dict[str, Any]):
@@ -47,7 +50,7 @@ class IntermediateEntityConfig:
         self.link_to_ref: str | None = raw.get("link_to_ref")
         # ref_namespace: 참조 노드 namespace (예: Person namespace)
         self.ref_namespace: str | None = raw.get("ref_namespace")
-        # ref_id_field: 참조 노드 ID 필드 (예: actorNm or personId)
+        # ref_id_field: 참조 노드 ID 필드 (예: refId or entityId)
         self.ref_id_field: str | None = raw.get("ref_id_field")
         # ref_label_field: 참조 노드 label 필드
         self.ref_label_field: str | None = raw.get("ref_label_field")
@@ -123,7 +126,10 @@ class DomainMapper:
             label_key = ref_cfg.get("label_key")
             for item in (val if isinstance(val, list) else [val]):
                 if isinstance(item, dict):
-                    ref_id = item.get(id_key, str(uuid.uuid4()))
+                    ref_id = item.get(id_key)
+                    if ref_id is None:
+                        logger.warning("ref_id missing for field '%s', skipping intermediate entity", id_key)
+                        continue
                     ref_uri = URIRef(f"{ref_ns}{_slug(str(ref_id))}")
                     g.add((s, pred, ref_uri))
                     if label_key and item.get(label_key):
@@ -131,7 +137,7 @@ class DomainMapper:
                 else:
                     g.add((s, pred, URIRef(f"{ref_ns}{_slug(str(item))}")))
 
-        # 중간 노드 생성 (배역명 같은 관계 속성)
+        # 중간 노드 생성 (관계 속성명 같은 관계 속성)
         for ie in self.cfg.intermediate_entities:
             items = record.get(ie.source_field)
             if not items:
@@ -175,7 +181,7 @@ class DomainMapper:
             if val is not None:
                 g.add((node_uri, URIRef(pred_uri), Literal(str(val))))
 
-        # 중간 노드 → 참조 노드 (예: Casting → Person)
+        # 중간 노드 → 참조 노드 (예: IntermNode → Person)
         if ie.link_to_ref and ie.ref_namespace and ie.ref_id_field:
             ref_raw_id = item.get(ie.ref_id_field, ref_id_val)
             ref_uri = URIRef(f"{ie.ref_namespace}{_slug(str(ref_raw_id))}")

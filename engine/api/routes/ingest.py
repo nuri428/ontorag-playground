@@ -23,7 +23,7 @@ router = APIRouter(prefix="/api", tags=["ingest"])
 logger = logging.getLogger(__name__)
 
 _ACL_FETCH_LIMIT = 5000
-_DOMAIN_ROOT = Path("domains").resolve()
+_DOMAIN_ROOT = (Path(__file__).parent.parent.parent.parent / "domains").resolve()
 
 
 async def _build_existing_graph(store, new_graph: RDFGraph, rules: list[ACLRule]) -> RDFGraph:
@@ -78,9 +78,9 @@ class DataIngestRequest(BaseModel):
 @router.post("/ingest/schema")
 async def ingest_schema():
     """Load TBox schema.ttl from the active domain directory."""
-    schema_path = _domain_dir() / "schema.ttl"
+    schema_path = _resolve_domain(None) / "schema.ttl"
     if not schema_path.exists():
-        raise HTTPException(400, f"schema.ttl not found: {schema_path}")
+        raise HTTPException(400, "schema.ttl not found in the active domain directory")
     store = create_store()
     result = await store.load_rdf(str(schema_path), mode="schema")
     return {"triples_loaded": result.triples_loaded, "source": str(schema_path)}
@@ -111,13 +111,13 @@ async def ingest_data(req: DataIngestRequest):
         new_graph = new_graph + links
         links_added = len(links)
 
-    with tempfile.NamedTemporaryFile(
-        mode="w", suffix=".ttl", delete=False, encoding="utf-8"
-    ) as tmp:
-        tmp.write(new_graph.serialize(format="turtle"))
-        tmp_path = tmp.name
-
+    tmp_path = None
     try:
+        with tempfile.NamedTemporaryFile(
+            mode="w", suffix=".ttl", delete=False, encoding="utf-8"
+        ) as tmp:
+            tmp.write(new_graph.serialize(format="turtle"))
+            tmp_path = tmp.name
         result = await store.load_rdf(tmp_path, mode="data")
         return {
             "records": len(req.records),
@@ -125,7 +125,8 @@ async def ingest_data(req: DataIngestRequest):
             "links_added": links_added,
         }
     finally:
-        Path(tmp_path).unlink(missing_ok=True)
+        if tmp_path:
+            Path(tmp_path).unlink(missing_ok=True)
 
 
 class InferenceRequest(BaseModel):
@@ -168,7 +169,7 @@ async def run_inference(req: InferenceRequest):
 @router.get("/ingest/status")
 async def ingest_status():
     """Show what's loaded in the active domain."""
-    domain = _domain_dir()
+    domain = _resolve_domain(None)
     store = create_store()
     schema = await store.get_schema()
     return {

@@ -209,7 +209,6 @@ def test_router(q, expected):
 
 # ── Stage 4 fix: _build_existing_graph ───────────────────────────────────────
 
-@pytest.mark.asyncio
 async def test_build_existing_graph_populates_labels():
     """스토어에서 가져온 엔티티가 existing_graph에 rdfs:label로 들어와야 한다.
 
@@ -243,7 +242,6 @@ async def test_build_existing_graph_populates_labels():
     assert str(labels[0]) == "송강호"
 
 
-@pytest.mark.asyncio
 async def test_build_existing_graph_links_same_person():
     """_build_existing_graph → find_links 파이프라인 통합 확인.
 
@@ -271,7 +269,6 @@ async def test_build_existing_graph_links_same_person():
     assert (URIRef("urn:a"), OWL.sameAs, URIRef("urn:b")) in links
 
 
-@pytest.mark.asyncio
 async def test_build_existing_graph_store_error_skips_gracefully():
     """스토어 조회 실패 시 예외 없이 빈 그래프를 반환해야 한다."""
     from engine.api.routes.ingest import _build_existing_graph

@@ -359,7 +359,8 @@ def pull_filmography(
 
     # ── 배우 목록 추출 ─────────────────────────────────────────────────────
     from collections import defaultdict
-    movies = [json.loads(l) for l in open(source_jsonl, encoding="utf-8") if l.strip()]
+    with open(source_jsonl, encoding="utf-8") as _f:
+        movies = [json.loads(l) for l in _f if l.strip()]
     actor_info: dict[str, dict] = defaultdict(lambda: {"count": 0, "pos_sum": 0, "nm": ""})
     for m in movies:
         for pos, a in enumerate(m.get("actors", [])):
@@ -394,14 +395,20 @@ def pull_filmography(
         return
 
     # 기존 영화 ID 중복 방지
-    existing_ids = {json.loads(l).get("id") for l in open(source_jsonl, encoding="utf-8") if l.strip()}
+    with open(source_jsonl, encoding="utf-8") as _f:
+        existing_ids = {json.loads(l).get("id") for l in _f if l.strip()}
     if out.exists():
-        existing_ids |= {json.loads(l).get("id") for l in open(out, encoding="utf-8") if l.strip()}
+        with open(out, encoding="utf-8") as _f:
+            existing_ids |= {json.loads(l).get("id") for l in _f if l.strip()}
 
     out.parent.mkdir(parents=True, exist_ok=True)
     calls = 0
     # 이미 저장된 파일 라인 수에서 누적 카운트 복원
-    new_movies = sum(1 for _ in open(out, encoding="utf-8") if _.strip()) if out.exists() else 0
+    if out.exists():
+        with open(out, encoding="utf-8") as _f:
+            new_movies = sum(1 for _ in _f if _.strip())
+    else:
+        new_movies = 0
 
     with _client() as c, open(out, "a", encoding="utf-8") as f:
         for aid, nm in remaining:
@@ -450,7 +457,8 @@ def load(
     endpoint: str = typer.Option("http://localhost:8200", help="playground 서버 URL"),
 ):
     """저장된 JSONL을 playground의 ingest 엔드포인트로 전송."""
-    records = [json.loads(l) for l in open(jsonl, encoding="utf-8") if l.strip()]
+    with open(jsonl, encoding="utf-8") as _f:
+        records = [json.loads(l) for l in _f if l.strip()]
     r = httpx.post(f"{endpoint}/api/ingest/data", json={"records": records}, timeout=120)
     r.raise_for_status()
     typer.echo(r.json())

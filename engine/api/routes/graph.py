@@ -11,14 +11,23 @@ API 확인된 메서드:
 from __future__ import annotations
 
 import logging
+import re as _re
 from typing import Any
 
-from fastapi import APIRouter, Query
+from fastapi import APIRouter, HTTPException, Query
 
 from ontorag.stores.factory import create_store
 
 router = APIRouter(prefix="/api", tags=["graph"])
 logger = logging.getLogger(__name__)
+
+_URI_RE = _re.compile(r"^(https?://|urn:)[^\s<>\"{}|\\^\[\]]+$")
+
+
+def _validate_uri(uri: str) -> str:
+    if not _URI_RE.match(uri):
+        raise HTTPException(status_code=400, detail=f"유효하지 않은 URI 형식")
+    return uri
 
 
 def _node_label(uri: str) -> str:
@@ -60,8 +69,12 @@ def _to_cytoscape(nodes: list[dict[str, Any]], edges: list[dict[str, Any]]) -> d
 @router.get("/graph/schema")
 async def graph_schema():
     """TBox overview as Cytoscape elements (class hierarchy)."""
-    store = create_store()
-    schema = await store.get_schema()
+    try:
+        store = create_store()
+        schema = await store.get_schema()
+    except Exception as exc:
+        logger.error("Graph operation failed: %s", exc)
+        raise HTTPException(status_code=503, detail="그래프 조회 중 오류가 발생했습니다")
     nodes = []
     edges = []
     for cls in schema.classes:
@@ -89,14 +102,29 @@ async def graph_schema():
 @router.get("/graph/traverse")
 async def graph_traverse(uri: str, depth: int = Query(default=2, ge=1, le=4)):
     """BFS from entity URI — returns neighborhood as Cytoscape elements."""
-    store = create_store()
-    result = await store.traverse(start_uri=uri, max_depth=depth)
+    uri = _validate_uri(uri)
+    try:
+        store = create_store()
+        result = await store.traverse(start_uri=uri, max_depth=depth)
+    except HTTPException:
+        raise
+    except Exception as exc:
+        logger.error("Graph operation failed: %s", exc)
+        raise HTTPException(status_code=503, detail="그래프 조회 중 오류가 발생했습니다")
     return _to_cytoscape(result.nodes, result.edges)
 
 
 @router.get("/graph/path")
 async def graph_path(uri_a: str, uri_b: str):
     """Shortest path between two URIs."""
-    store = create_store()
-    result = await store.find_path(uri_a=uri_a, uri_b=uri_b)
+    uri_a = _validate_uri(uri_a)
+    uri_b = _validate_uri(uri_b)
+    try:
+        store = create_store()
+        result = await store.find_path(uri_a=uri_a, uri_b=uri_b)
+    except HTTPException:
+        raise
+    except Exception as exc:
+        logger.error("Graph operation failed: %s", exc)
+        raise HTTPException(status_code=503, detail="그래프 조회 중 오류가 발생했습니다")
     return _to_cytoscape(result.nodes, result.edges)
